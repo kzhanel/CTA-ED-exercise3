@@ -19,6 +19,7 @@ In this tutorial, you will learn how to:
 ## Setup 
 ```{r}
 install.packages("quanteda.textstats")
+
 ```
 
 Before proceeding, we'll load the remaining packages we will need for this tutorial.
