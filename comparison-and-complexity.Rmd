@@ -17,6 +17,9 @@ In this tutorial, you will learn how to:
 * Replicate analyses from @schoonvelde_liberals_2019
 
 ## Setup 
+```{r}
+install.packages("quanteda.textstats")
+```
 
 Before proceeding, we'll load the remaining packages we will need for this tutorial.
 
@@ -32,6 +35,7 @@ library(stringdist) # for basic character-based distance measures
 library(dplyr) #for wrangling data
 library(tibble) #for wrangling data
 library(ggplot2) #for visualization
+
 ```
 
 
@@ -261,10 +265,13 @@ We can then calculate the Flesch-Kincaid readability/complexity score with the `
 
 ```{r}
 speeches$flesch.kincaid <- textstat_readability(speeches$text, measure = "Flesch.Kincaid")
+## calculate the Flesch-Kincaid score for each text in the speeches dataset
+## textstat_readability computes the readibility score. Higher score = easier readability, lower = more difficult readability.
 
 # returned as quanteda data.frame with document-level information;
 # need just the score:
 speeches$flesch.kincaid <- speeches$flesch.kincaid$Flesch.Kincaid
+## extracts the scores and put in a new column called "flesch.kincaid"
 ```
 
 We want this information aggregated over each of our politicians: Gordon Brown, Jose Zapatero", David Cameron, and Mariano Rajoy. These are recorded in the data under a column called "speaker."
@@ -277,6 +284,9 @@ sum_corpus <- speeches %>%
                    SD=sd(flesch.kincaid, na.rm=TRUE),
                    N=length(speaker))
 
+## calculates the scores grouped by speaker
+## in the summarise function, each speaker calculates the mean, standard deviation and number of speeches
+
 # calculate standard errors and confidence intervals
 sum_corpus$se <- sum_corpus$SD / sqrt(sum_corpus$N)
 sum_corpus$min <- sum_corpus$mean - 1.96*sum_corpus$se
@@ -286,7 +296,7 @@ sum_corpus$max <- sum_corpus$mean + 1.96*sum_corpus$se
 And this gives us data in tidy format that looks like so. 
 
 ```{r}
-sum_corpus
+sum_corpus #this shows a summary statistic
 ```
 
 Which we can then plot---and we see that our results look like those in Figure 1 of the published article by @schoonvelde_liberals_2019. 
@@ -369,3 +379,166 @@ ggplot(eucmatdf) +
 ## x=reorder(username, -corr_may) specifies what the x axis should represent, in this case the usernames, and the values of the column corr_may
 ## y= corr_may specifies what is in the y axis 
 ## coord_flip() flips the x and y axis. this is why the graph it is showing the usernames on the y axis instead.
+```
+
+2. Estimate at least three other complexity measures for the EU speeches as above. Consider how the results compare to the Flesch-Kincaid measure used in the article by @schoonvelde_liberals_2019.
+
+Other complexity measures
+
+Gunning Fog Index: Similar to the Flesch-Kincaid score, the Gunning Fog Index measures the readability of English text. It estimates the years of formal education needed to understand a piece of text. Higher scores indicate more complex text.
+
+Coleman-Liau Index: This readability test calculates the reading level of a text based on characters instead of syllables. It estimates the U.S. grade level needed to understand the text.
+
+Automated Readability Index (ARI): The ARI assesses the readability of a text based on characters, words, and sentences. It also estimates the U.S. grade level required to understand the text.
+
+Simple Measure of Gobbledygook (SMOG): SMOG estimates the years of education a person needs to understand a piece of writing. It is based on the number of polysyllabic words in the text.
+
+Dale-Chall Readability Formula: This formula computes readability based on a list of familiar words in English. It estimates the reading level required to understand a text.
+
+Spache Readability Formula: Like the Dale-Chall formula, the Spache formula measures readability based on a list of familiar words. It is often used for assessing readability in children's literature.
+
+Readability Consensus Score: This is an average of various readability formulas, providing a comprehensive view of the readability of a text.
+
+```{r}
+help("textstat_readability") ##shows all other measures of complexity
+
+##using Gunning Fog measure
+
+speeches$gunning.fog <- textstat_readability(speeches$text, measure = "FOG") 
+## calculate the Gunning Fog score for each text in the speeches dataset
+## textstat_readability computes the readability score. Higher score = easier readability, lower = more difficult readability. here we are basically running the same code from 266 to 274, but changing the measure from F-K to FOG. then we see FOG column in speeches dataset
+
+
+# returned as quanteda data.frame with document-level information;
+# need just the score:
+speeches$gunning.fog <- speeches$gunning.fog$FOG
+## extracts the scores and put in a new column called "gunning.fog"
+
+```
+
+```{r}
+#get mean and standard deviation of Gunning Fog, and N of speeches for each speaker
+sum_corpusfog <- speeches %>%
+  group_by(speaker) %>%
+  summarise(mean = mean(gunning.fog, na.rm=TRUE),
+                   SD=sd(gunning.fog, na.rm=TRUE),
+                   N=length(speaker))
+
+## calculates the scores grouped by speaker
+## in the summarise function, each speaker calculates the mean, standard deviation and number of speeches
+
+# calculate standard errors and confidence intervals
+sum_corpusfog$se <- sum_corpusfog$SD / sqrt(sum_corpusfog$N)
+sum_corpusfog$min <- sum_corpusfog$mean - 1.96*sum_corpusfog$se
+sum_corpusfog$max <- sum_corpusfog$mean + 1.96*sum_corpusfog$se
+
+```
+
+```{r}
+##plotting into a graph (Gunning.Fog mean)
+
+ggplot(sum_corpusfog, aes(x=speaker, y=mean)) +
+  geom_bar(stat="identity") + 
+  geom_errorbar(ymin=sum_corpusfog$min,ymax=sum_corpusfog$max, width=.2) +
+  coord_flip() +
+  xlab("") +
+  ylab("Mean Complexity") + 
+  theme_minimal() + 
+  ylim(c(0,20))
+
+```
+
+Another complexity measure Simple Measure of Gobbledygook (SMOG): SMOG 
+
+```{r}
+
+##using SMOG measure
+
+speeches$smog <- textstat_readability(speeches$text, measure = "SMOG") 
+## calculate the smog score for each text in the speeches dataset
+
+
+# returned as quanteda data.frame with document-level information;
+# need just the score:
+speeches$smog <- speeches$smog$SMOG
+## extracts the scores and put in a new column called "smog"
+
+```
+
+```{r}
+#get mean and standard deviation of SMOG, and N of speeches for each speaker
+sum_corpussmog <- speeches %>%
+  group_by(speaker) %>%
+  summarise(mean = mean(smog, na.rm=TRUE),
+                   SD=sd(smog, na.rm=TRUE),
+                   N=length(speaker))
+
+## calculates the scores grouped by speaker
+## in the summarise function, each speaker calculates the mean, standard deviation and number of speeches
+
+# calculate standard errors and confidence intervals
+sum_corpussmog$se <- sum_corpussmog$SD / sqrt(sum_corpussmog$N)
+sum_corpussmog$min <- sum_corpussmog$mean - 1.96*sum_corpussmog$se
+sum_corpussmog$max <- sum_corpussmog$mean + 1.96*sum_corpussmog$se
+
+```
+
+```{r}
+##plotting into a graph (SMOG mean)
+
+ggplot(sum_corpusfog, aes(x=speaker, y=mean)) +
+  geom_bar(stat="identity") + 
+  geom_errorbar(ymin=sum_corpussmog$min,ymax=sum_corpussmog$max, width=.2) +
+  coord_flip() +
+  xlab("") +
+  ylab("Mean complexity") + 
+  theme_minimal() + 
+  ylim(c(0,20))
+
+```
+Using Anderson's Readability index (RIX)
+
+```{r}
+##using RIX measure
+
+speeches$rix <- textstat_readability(speeches$text, measure = "RIX") 
+## calculate the smog score for each text in the speeches dataset. remember to run dataset every time before doing new score
+
+
+# returned as quanteda data.frame with document-level information;
+# need just the score:
+speeches$rix <- speeches$rix$RIX
+## extracts the scores and put in a new column called "RIX"
+
+```
+
+```{r}
+#get mean and standard deviation of RIX, and N of speeches for each speaker
+sum_corpusrix <- speeches %>%
+  group_by(speaker) %>%
+  summarise(mean = mean(rix, na.rm=TRUE),
+                   SD=sd(rix, na.rm=TRUE),
+                   N=length(speaker))
+
+## calculates the scores grouped by speaker
+## in the summarise function, each speaker calculates the mean, standard deviation and number of speeches
+
+# calculate standard errors and confidence intervals
+sum_corpusrix$se <- sum_corpusrix$SD / sqrt(sum_corpusrix$N)
+sum_corpusrix$min <- sum_corpusrix$mean - 1.96*sum_corpusrix$se
+sum_corpusrix$max <- sum_corpusrix$mean + 1.96*sum_corpusrix$se
+
+```
+
+```{r}
+##plotting into a graph (RIX mean)
+
+ggplot(sum_corpusrix, aes(x=speaker, y=mean)) +
+  geom_bar(stat="identity") + 
+  geom_errorbar(ymin=sum_corpusrix$min,ymax=sum_corpusrix$max, width=.2) +
+  coord_flip() +
+  xlab("") +
+  ylab("Mean complexity") + 
+  theme_minimal() + 
+  ylim(c(0,20))
+```
