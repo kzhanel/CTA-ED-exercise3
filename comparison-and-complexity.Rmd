@@ -44,15 +44,15 @@ tweets  <- readRDS(gzcon(url("https://github.com/cjbarrie/CTA-ED/blob/main/data/
 And we see that the data contain three variables: "username," which is the username of the MP in question; "tweet," which is the text of the given tweet, and "date" in days in yyyy-mm-dd format. 
 
 ```{r}
-head(tweets)
+head(tweets) #head() shows the first few rows of dataset
 ```
 
 And there are 24 MPs whose tweets we're examining. 
 
 ```{r}
-unique(tweets$username)
+unique(tweets$username) #unique() identifies and removes duplicates in the dataset
 
-length(unique(tweets$username))
+length(unique(tweets$username)) #calculate the numbers of unique (non-duplicate tweet usernames) in dataset - 24 of them
 ```
 
 ## Generate document feature matrix
@@ -63,10 +63,10 @@ We can do this as follows.
 
 ```{r}
 #make corpus object, specifying tweet as text field
-tweets_corpus <- corpus(tweets, text_field = "tweet")
+tweets_corpus <- corpus(tweets, text_field = "tweet") #text-field is text 1/2/3 etc when you run the code. here we are making a corpus out of "tweets" data using corpus() function, specifying that we want to see tweets in the variable
 
 #add in username document-level information
-docvars(tweets_corpus, "username") <- tweets$username
+docvars(tweets_corpus, "username") <- tweets$username #docvars is used to access document variables in the corpus. here, we want to access the usernames in the tweets_corpus corpus
 
 tweets_corpus
 ```
@@ -76,7 +76,8 @@ We are now ready to reformat the data into a document feature matrix.
 ```{r}
 dfmat <- dfm(tokens(tweets_corpus),
              remove_punct = TRUE, 
-             remove = stopwords("english"))
+             remove = stopwords("english")) ##dfm() creates document-feature matrix to format text data in suitable format for analysis
+##tokens() splits each tweet into individual words
 
 dfmat
 ```
@@ -116,7 +117,7 @@ We first get similarities between the text of MP tweets and all other MPs.
 
 ```{r}
 
-#estimate similarity, grouping by username
+##cosine similarity - estimate similarity, grouping by username
 
 cos_sim <- dfmat %>%
   dfm_group(groups = username) %>%
@@ -132,7 +133,7 @@ We first convert the `textstat_simil()` output to a matrix.
 
 ```{r}
 
-cosmat <- as.matrix(cos_sim) #convert to a matrix
+cosmat <- as.matrix(cos_sim) #converts the cosine similarity values from previous code to a matrix
   
 ```
 
@@ -143,6 +144,10 @@ We take this row, removing the similarity of Theresa May with herself (which wil
 ```{r}
 #generate data frame keeping only the row for Theresa May
 cosmatdf <- as.data.frame(cosmat[23, c(1:22, 24)])
+
+## converts cosmat into a data frame (table/spreadsheet) 
+## cosmat[23, c(1:22, 24)] filters and selects the 23rd row and column 24. as.data.frame turns the matrix into a table. the result compares all the other MPs's tweets to teresa may's tweets (how similar words are)
+
 ```
 
 We then rename the cosine similarity column with an appropriate name and convert row names to a column variable so that we have cells containing information on the MP to which the cosine similarity measure refers. 
@@ -153,17 +158,23 @@ colnames(cosmatdf) <- "corr_may"
   
 #create column variable from rownames
 cosmatdf <- tibble::rownames_to_column(cosmatdf, "username")
+
+## tibble::rownames_to_column(cosmatdf, "username"). this uses the tibble package and convert row names. It adds column named username
 ```
 
 And like so we have our data in tidy format, which we can then plot like so. 
 
 ```{r}
+##creates a point graph
 ggplot(cosmatdf) +
   geom_point(aes(x=reorder(username, -corr_may), y= corr_may)) + 
   coord_flip() +
   xlab("MP username") +
   ylab("Cosine similarity score") + 
   theme_minimal()
+## x=reorder(username, -corr_may) specifies what the x axis should represent, in this case the usernames, and the values of the column corr_may
+## y= corr_may specifies what is in the y axis 
+## coord_flip() flips the x and y axis. this is why the graph it is showing the usernames on the y axis instead.
 
 ```
 
@@ -171,15 +182,15 @@ Combining these steps into a single `for` loop, we can see how our different sim
 
 ```{r}
 
-#specify different similarity measures to explore
+##specify different similarity measures to explore, contains all the other similarity measures. for loop lets us run different methods one after another aka multiple methods
 methods <- c("correlation", "cosine", "dice", "edice")
 
-#create empty dataframe
+##create empty dataframe, used to store results of similarity calculations from the different methods
 testdf_all <- data.frame()
 
-#gen for loop across methods types
+#gen for loop across methods types, this runs the code again for each similarity method
 for (i in seq_along(methods)) {
-  
+    ##seq_along generates a sequence of methods
   #pass method to character string object
   sim_method <- methods[[i]]
   
@@ -200,7 +211,7 @@ for (i in seq_along(methods)) {
   testdf <- tibble::rownames_to_column(testdf, "username")
   
   #record method in new column variable
-  testdf$method <- sim_method
+  testdf$method <- sim_method ##creates new column called "method" showing which similarity measure was used for every calculation
 
   #bind all together
   testdf_all <- rbind(testdf_all, testdf)  
@@ -210,8 +221,9 @@ for (i in seq_along(methods)) {
 #create variable (for viz only) that is mean of similarity scores for each MP
 testdf_all <- testdf_all %>%
   group_by(username) %>%
-  mutate(mean_sim = mean(corr_may))
+  mutate(mean_sim = mean(corr_may)) #mutate changes rows and columns
 
+##calculate the mean similarity scores for each MP and store in new column called "mean_sim"
 ggplot(testdf_all) +
   geom_point( aes(x=reorder(username, -mean_sim), y= corr_may, color = method)) + 
   coord_flip() +
@@ -298,3 +310,62 @@ ggplot(sum_corpus, aes(x=speaker, y=mean)) +
 1. Compute distance measures such as "euclidean" or "manhattan" for the MP tweets as above, comparing between tweets by MPs and tweets by PM, Theresa May. 
 2. Estimate at least three other complexity measures for the EU speeches as above. Consider how the results compare to the Flesch-Kincaid measure used in the article by @schoonvelde_liberals_2019.
 3. (Advanced---optional) Estimate similarity scores between the MP tweets and the PM tweets for each week contained in the data. Plot the results. 
+
+## Exercises
+
+1. Compute distance measures such as "euclidean" or "manhattan" for the MP tweets as above, comparing between tweets by MPs and tweets by PM, Theresa May. 
+
+```{r}
+help(dist)
+## dist() is the function for the euclidean and manhattan distance methods
+
+##computing the distance measures using euclidean method
+
+##run tutorial code up to row 82. this is process of tidying the dataset
+```
+
+```{r}
+distmat <- dfmat %>%
+  dfm_group(groups = username) %>%
+  textstat_dist(margin = "documents", method = "euclidean")
+
+## textstat_dist(margin = "documents", method = "euclidean") calculates the similarity of the text by using the dist method, measuring how similar or related the tweets are to each other based on the words they have
+
+corrmat[1:5,1:5]
+```
+```{r}
+eucmat <- as.matrix(distmat) #converts the euclidean distance values from previous code to a matrix. the higher the score, the more distanced similarities are
+
+eucmat
+```
+
+```{r}
+#generate data frame keeping only the row for Theresa May
+eucmatdf <- as.data.frame(eucmat[23, c(1:22, 24)])
+
+## converts eucmat into a data frame (table/spreadsheet) 
+## eucmat[23, c(1:22, 24)] filters and selects the 23rd row and column 24 
+```
+
+```{r}
+#rename column
+colnames(eucmatdf) <- "corr_may"
+  
+#create column variable from rownames
+eucmatdf <- tibble::rownames_to_column(eucmatdf, "username")
+
+## tibble::rownames_to_column(eucmatdf, "username"). this uses the tibble package and convert row names. It adds column named username
+```
+
+```{r}
+##creates a point graph with euclidean method
+
+ggplot(eucmatdf) +
+  geom_point(aes(x=reorder(username, -corr_may), y= corr_may)) + 
+  coord_flip() +
+  xlab("MP username") +
+  ylab("Euclidean distance score") + 
+  theme_minimal()
+## x=reorder(username, -corr_may) specifies what the x axis should represent, in this case the usernames, and the values of the column corr_may
+## y= corr_may specifies what is in the y axis 
+## coord_flip() flips the x and y axis. this is why the graph it is showing the usernames on the y axis instead.
