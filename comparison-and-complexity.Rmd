@@ -17,10 +17,8 @@ In this tutorial, you will learn how to:
 * Replicate analyses from @schoonvelde_liberals_2019
 
 ## Setup 
-```{r}
-install.packages("quanteda.textstats")
 
-```
+
 
 Before proceeding, we'll load the remaining packages we will need for this tutorial.
 
